@@ -1,1 +1,16 @@
-/Debug/
+# STM32CubeIDE build output
+**/Debug/
+**/Release/
+
+# Eclipse workspace metadata and local history
+**/.metadata/
+**/.recommenders/
+**/.history/
+
+# Editor and operating system temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
