@@ -108,9 +108,28 @@ STM32-Embedded-Study/
 
 ## 6. 주요 참고 자료
 
+### 보드 자료 — 핀맵·회로도·사용 설명서
+
+배선할 때는 **핀맵**, 보드 내부 연결을 이해할 때는 **회로도**, 전원과 점퍼를 설정할 때는 **사용 설명서**를 참고합니다.
+
+| 자료 | 용도 | 공식 링크 |
+| --- | --- | --- |
+| NUCLEO-F411RE 제품 페이지 | 보드 개요 및 공식 자료 모음 | [ST 제품 페이지](https://www.st.com/en/evaluation-tools/nucleo-f411re.html) |
+| UM1724 보드 사용 설명서 | 보드 구성, 전원 공급, 점퍼, 커넥터 확인 | [PDF 열기](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf) |
+| NUCLEO-F411RE 핀맵 | 커넥터 위치와 MCU 핀 이름 대조 | [UM1724 p.33, Figure 18](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf#page=33) |
+| MB1136 C03 회로도 | 전원, MCU, ST-LINK, 확장 커넥터의 회로 확인 | [C03 PDF](https://www.st.com/resource/en/schematic_pack/mb1136-default-c03_schematic.pdf) |
+| MB1136 C04 회로도 | 전원, MCU, ST-LINK, 확장 커넥터의 회로 확인 | [C04 PDF](https://www.st.com/resource/en/schematic_pack/mb1136-default-c04_schematic.pdf) |
+
+> **회로도 선택:** 실제 보드에 인쇄된 MB1136 및 리비전 표기를 확인하고 해당 버전의 회로도를 사용합니다. 위 두 버전과 다르다면 [공식 CAD Resources](https://www.st.com/en/evaluation-tools/nucleo-f411re.html#cad-resources)에서 자료를 확인합니다.
+>
+> **핀맵 위치:** 위 페이지 번호는 UM1724 Rev 17 기준입니다. 문서가 개정되면 `NUCLEO-F411RE` 또는 `Figure 18`을 검색합니다. 브라우저에 따라 PDF의 지정 페이지 이동이 지원되지 않을 수 있습니다.
+
+공식 회로도는 보드 자체의 연결을 보여줍니다. 외부 LED·저항 등 직접 구성한 회로의 **배선표, 연결 사진, 동작 결과**는 [각 실습 README](examples/gpio-led/README.md)에 기록하고, 이미지 파일은 [`assets/`](assets/README.md)에 보관합니다.
+
+### MCU 및 펌웨어 자료
+
 - STM32F411 Reference Manual (RM0383)
 - STM32F411 Datasheet
-- STM32 Nucleo-64 Board User Manual (UM1724)
 - STM32CubeF4 HAL Driver Documentation
 
 ## 7. 학습 원칙
