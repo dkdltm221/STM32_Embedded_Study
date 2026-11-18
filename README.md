@@ -108,29 +108,50 @@ STM32-Embedded-Study/
 
 ## 6. 주요 참고 자료
 
-### 보드 자료 — 핀맵·회로도·사용 설명서
+### 가장 먼저 보는 문서
 
-배선할 때는 **핀맵**, 보드 내부 연결을 이해할 때는 **회로도**, 전원과 점퍼를 설정할 때는 **사용 설명서**를 참고합니다.
+**레지스터 설정과 주변장치 동작을 공부할 때는 RM0383을 기준으로 확인합니다.** 핀 배치와 전기적 조건은 데이터시트, 실제 보드의 배선과 점퍼는 보드 매뉴얼을 함께 봅니다.
 
-| 자료 | 용도 | 공식 링크 |
+| 우선순위 | 자료 | 찾아볼 내용 |
 | --- | --- | --- |
-| NUCLEO-F411RE 제품 페이지 | 보드 개요 및 공식 자료 모음 | [ST 제품 페이지](https://www.st.com/en/evaluation-tools/nucleo-f411re.html) |
-| UM1724 보드 사용 설명서 | 보드 구성, 전원 공급, 점퍼, 커넥터 확인 | [PDF 열기](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf) |
-| NUCLEO-F411RE 핀맵 | 커넥터 위치와 MCU 핀 이름 대조 | [UM1724 p.33, Figure 18](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf#page=33) |
-| MB1136 C03 회로도 | 전원, MCU, ST-LINK, 확장 커넥터의 회로 확인 | [C03 PDF](https://www.st.com/resource/en/schematic_pack/mb1136-default-c03_schematic.pdf) |
-| MB1136 C04 회로도 | 전원, MCU, ST-LINK, 확장 커넥터의 회로 확인 | [C04 PDF](https://www.st.com/resource/en/schematic_pack/mb1136-default-c04_schematic.pdf) |
+| 1 | **[RM0383 — STM32F411 Reference Manual (PDF)](https://www.st.com/resource/en/reference_manual/dm00119316.pdf)** | 메모리 맵, RCC·클록 트리, GPIO, EXTI, 타이머, 통신 주변장치의 동작과 레지스터 비트 |
+| 2 | [DS10314 — STM32F411 데이터시트 (PDF)](https://www.st.com/resource/en/datasheet/stm32f411re.pdf) | MCU 내부 블록도, 패키지별 핀 배치·대체 기능, 전압·전류·타이밍 조건 |
+| 3 | [UM1724 — Nucleo-64 보드 매뉴얼 (PDF)](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf) | 보드 구성, 전원, ST-LINK, 점퍼 및 커넥터. [F411RE 핀맵 바로가기](https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf#page=33) |
+| 4 | [보드 회로도 — 공식 CAD Resources](https://www.st.com/en/evaluation-tools/nucleo-f411re.html#cad-resources) | LED·버튼·전원·커넥터의 실제 연결. 보드에 인쇄된 MB1136 리비전과 맞는 회로도 선택 |
 
-> **회로도 선택:** 실제 보드에 인쇄된 MB1136 및 리비전 표기를 확인하고 해당 버전의 회로도를 사용합니다. 위 두 버전과 다르다면 [공식 CAD Resources](https://www.st.com/en/evaluation-tools/nucleo-f411re.html#cad-resources)에서 자료를 확인합니다.
->
-> **핀맵 위치:** 위 페이지 번호는 UM1724 Rev 17 기준입니다. 문서가 개정되면 `NUCLEO-F411RE` 또는 `Figure 18`을 검색합니다. 브라우저에 따라 PDF의 지정 페이지 이동이 지원되지 않을 수 있습니다.
+핀맵 바로가기는 UM1724 Rev 17의 p.33, Figure 18 기준입니다. 문서 개정 시 `NUCLEO-F411RE`를 검색합니다.
 
-공식 회로도는 보드 자체의 연결을 보여줍니다. 외부 LED·저항 등 직접 구성한 회로의 **배선표, 연결 사진, 동작 결과**는 [각 실습 README](examples/gpio-led/README.md)에 기록하고, 이미지 파일은 [`assets/`](assets/README.md)에 보관합니다.
+### MCU 내부 구조 한눈에 보기
 
-### MCU 및 펌웨어 자료
+아래는 **학습용으로 단순화한 연결도**입니다. 전체 구조와 세부 연결은 [공식 데이터시트 p.16, Figure 3 — STM32F411xC/xE block diagram](https://www.st.com/resource/en/datasheet/stm32f411re.pdf#page=16)을 확인합니다.
 
-- STM32F411 Reference Manual (RM0383)
-- STM32F411 Datasheet
-- STM32CubeF4 HAL Driver Documentation
+```mermaid
+flowchart TB
+    CPU["Cortex-M4 CPU + FPU"] --> BUS["AHB 버스 매트릭스"]
+    BUS --> FLASH["Flash 메모리"]
+    BUS --> SRAM["SRAM"]
+    DMA["DMA1 / DMA2"] --> BUS
+    BUS --> AHB1["AHB1 주변장치"]
+    BUS --> AHB2["AHB2 주변장치"]
+    AHB1 --> GPIO["GPIO 포트"]
+    AHB1 --> APB1["AHB / APB1 브리지"]
+    AHB1 --> APB2["AHB / APB2 브리지"]
+    APB1 --> P1["TIM2~5 · USART2 · I2C 등"]
+    APB2 --> P2["TIM1 · USART1/6 · ADC1 등"]
+    AHB2 --> USB["USB OTG FS"]
+    RCC["RCC: 클록·리셋 제어"] -.-> CPU
+    RCC -.-> AHB1
+    RCC -.-> AHB2
+    RCC -.-> APB1
+    RCC -.-> APB2
+```
+
+GPIO 학습에서는 **RCC로 포트 클록 활성화 → GPIO 레지스터 설정 → 핀 입력·출력 제어**를 연결해서 봅니다. 실제 사용할 수 있는 핀과 주변장치 기능은 STM32F411RE의 패키지와 보드 배선을 확인합니다.
+
+### HAL 코드와 대조하기
+
+- [CMSIS 디바이스 헤더](examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h): 메모리 주소, 레지스터 구조체, 비트 정의
+- [HAL GPIO 구현](examples/gpio-led/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c): HAL 함수가 실제로 접근하는 레지스터
 
 ## 7. 학습 원칙
 
