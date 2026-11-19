@@ -104,7 +104,7 @@ int main(void)
 	  HAL_GPIO_WritePin(
 	          GPIOC,
 	          LED1_Pin | LED2_Pin | LED3_Pin | LED4_Pin |
-	          LED5_Pin | LED6_Pin | LED7_Pin | LED8_Pin,
+
 	          GPIO_PIN_SET
 	      );
 
@@ -114,7 +114,7 @@ int main(void)
 	      HAL_GPIO_WritePin(
 	          GPIOC,
 	          LED1_Pin | LED2_Pin | LED3_Pin | LED4_Pin |
-	          LED5_Pin | LED6_Pin | LED7_Pin | LED8_Pin,
+
 	          GPIO_PIN_RESET
 	      );
 
