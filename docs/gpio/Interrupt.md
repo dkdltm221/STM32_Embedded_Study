@@ -1,6 +1,6 @@
 # GPIO 외부 인터럽트 학습 정리
 
-2026.11.18 · NUCLEO-F411RE / EXTI·NVIC
+2026-11-18 · NUCLEO-F411RE / EXTI·NVIC
 
 ## 1. 폴링과 인터럽트
 
@@ -81,7 +81,7 @@ EXTI 주소로 출력을 하는 것이 아니라, EXTI를 통해 **입력 이벤
 
 **PR은 해당 비트에 1을 쓰면 지워지는 W1C(Write 1 to Clear) 방식이다.** `EXTI->PR = (1UL << 4);`는 EXTI4만 지운다. 모든 Pending을 지운다는 뜻이 아니다. `|=`는 읽어온 다른 Pending 비트까지 지울 수 있으므로 사용하지 않는다.
 
-## 5. 강의 예제: PD4 입력 → EXTI4
+## 5. 강의 예제의 PD4 입력과 EXTI4
 
 아래는 기존 PD3 LED·PD4 스위치 메모를 정리한 **레지스터 학습용 코드 조각**이다. 현재 F411RE 보드에서 PD3·PD4를 사용할 수 있다는 뜻이 아니며, 현재 배선에 그대로 적용하지 않는다.
 
@@ -96,7 +96,7 @@ RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 GPIOD->MODER = (GPIOD->MODER & ~(3UL << 6)) | (1UL << 6);
 GPIOD->OTYPER &= ~(1UL << 3);
 GPIOD->OSPEEDR = (GPIOD->OSPEEDR & ~(3UL << 6)) | (1UL << 6);
-GPIOD->BSRR = (1UL << 3); // HIGH.LED ON/OFF 여부는 배선에 따라 다름
+GPIOD->BSRR = (1UL << 3); // HIGH. LED의 켜짐 여부는 배선에 따라 달라진다.
 
 // PD4: 입력 모드. 풀업/풀다운은 실제 회로에 맞게 별도로 설정
 GPIOD->MODER &= ~(3UL << 8);
@@ -133,7 +133,7 @@ Port D 선택 값 = 3 = 0011 (2진수)
 
 배열 인덱스는 0부터 시작하므로 `EXTICR[1]`은 매뉴얼의 SYSCFG_EXTICR2에 해당한다.
 
-### IRQ를 켜는 것만으로 실습이 완성되지는 않는다
+### IRQ 핸들러 구현
 
 위 코드는 입력 라우팅과 요청 허용까지다. 실제 동작을 하려면 벡터 테이블과 이름이 일치하는 핸들러를 구현해야 한다.
 
@@ -151,9 +151,9 @@ void EXTI4_IRQHandler(void)
 
 ISR는 짧게 유지하고 긴 지연이나 무거운 작업은 메인 루프로 넘긴다. 기계식 버튼은 한 번 눌러도 여러 에지가 발생할 수 있으므로 디바운싱도 고려한다.
 
-## 6. 현재 보드에서 실습할 때
+## 6. 내장 B1 버튼을 EXTI에 연결하는 예
 
-현재 프로젝트의 버튼은 **B1=PC13**, 내장 LED는 **LD2=PA5**다. PC13을 사용할 경우 경로는 다음과 같다.
+GPIO LED 프로젝트에서 내장 버튼 **B1은 PC13**, 내장 LED **LD2는 PA5**를 사용한다. PC13을 인터럽트에 연결하면 다음 경로를 따른다.
 
 ```text
 PC13 → EXTI13 → EXTI15_10_IRQn → EXTI15_10_IRQHandler()
@@ -170,31 +170,19 @@ EXTI15_10_IRQHandler()
 
 프로젝트의 HAL 구현은 IRQ 처리 함수에서 Pending을 확인·해제한 뒤 콜백을 호출한다. CubeMX가 만든 IRQ 핸들러와 사용자 콜백의 역할을 구분한다.
 
-현재 LED 프로젝트는 B1을 `GPIO_MODE_IT_FALLING`으로 초기화하지만, 소스 확인 시 해당 IRQ의 NVIC 활성화와 EXTI15_10 핸들러는 구현되어 있지 않다. **핀 모드 설정만으로 버튼 인터럽트 실습이 완료된 상태는 아니다.**
+GPIO LED 프로젝트는 B1을 `GPIO_MODE_IT_FALLING`으로 초기화한다. 위 HAL 경로를 완성하려면 `EXTI15_10_IRQn`을 NVIC에서 활성화하고 프로젝트의 IRQ 핸들러를 연결해야 한다. 보드에서 B1을 누를 때의 입력 레벨과 에지를 확인한 뒤 LD2 제어에 사용할 수 있다.
 
-## 7. 실습 프로젝트 구분과 현재 진행 상태
+## 7. 레지스터 기반 EXTI 실습
 
-```text
-examples/
-├── gpio-led/          # 현재 존재하는 LED 실습 프로젝트
-│   ├── Core/
-│   ├── Drivers/
-│   └── test_led.ioc
-└── gpio-interrupt/    # 추후 생성할 인터럽트 실습 프로젝트
-    ├── Core/
-    ├── Drivers/
-    └── gpio_interrupt.ioc
-```
+`examples/F411_EXTI_Practice/`에서는 외부 스위치 PB0·PB1의 하강 에지를 각각 EXTI0·EXTI1로 연결하고 PC0~PC3 LED를 제어한다. 프로젝트의 코드는 GPIO, SYSCFG, EXTI를 직접 설정하고 CMSIS 함수로 NVIC를 구성한다.
 
-Core만 따로 나누는 것이 아니라 **실습별로 프로젝트 전체를 구분**한다. 인터럽트 프로젝트는 아직 생성하지 않았으며, 이 문서는 개념과 예제 정리 단계다.
-
-다음 실습은 PC13 입력 레벨·에지를 확인하고 CubeMX에서 GPIO와 NVIC를 설정한 뒤, 핸들러와 콜백을 연결해 LD2 제어를 확인한다. 빌드 결과, 버튼 한 번당 동작, 디바운싱 결과를 별도로 기록한다.
+배선, ISR 구현 및 보드 확인 항목은 [스위치 인터럽트 실습](LED_switch_interrupt.md)에 정리했다.
 
 ## 참고 자료
 
-- [RM0383 — STM32F411 레퍼런스 매뉴얼](https://www.st.com/resource/en/reference_manual/dm00119316.pdf): SYSCFG, EXTI, GPIO
-- [STM32F411 CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h): IRQ 번호와 레지스터 정의
-- [HAL GPIO 구현](../../examples/gpio-led/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c): EXTI IRQ 처리와 콜백
-- [현재 인터럽트 핸들러 파일](../../examples/gpio-led/Core/Src/stm32f4xx_it.c)
+- SYSCFG 라우팅, EXTI와 GPIO 레지스터. [RM0383 — STM32F411 레퍼런스 매뉴얼](https://www.st.com/resource/en/reference_manual/dm00119316.pdf)
+- IRQ 번호와 레지스터 정의. [STM32F411 CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h)
+- EXTI IRQ 처리와 콜백. [HAL GPIO 구현](../../examples/gpio-led/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c)
+- GPIO LED 프로젝트의 핸들러 목록. [stm32f4xx_it.c](../../examples/gpio-led/Core/Src/stm32f4xx_it.c)
 
 그림은 기존 학습 이미지를 연결했다. 원본 출처와 대상 MCU·문서 버전은 확인 후 추가한다.

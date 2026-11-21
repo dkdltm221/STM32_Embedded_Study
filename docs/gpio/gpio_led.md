@@ -1,6 +1,6 @@
 ﻿# GPIO LED 실습 요약
 
-2026.11.09 · NUCLEO-F411RE
+2026-11-09 · NUCLEO-F411RE
 
 ## 핀 구성
 
@@ -13,14 +13,14 @@
 
 ```c
 HAL_Init();              // HAL 초기화, 기본 시간 기준 설정
-SystemClock_Config();    // 시스템 클럭 설정
-MX_GPIO_Init();          // GPIO 클럭과 핀 모드 설정
+SystemClock_Config();    // 시스템 클록 설정
+MX_GPIO_Init();          // GPIO 클록과 핀 모드 설정
 MX_USART2_UART_Init();   // UART 통신 설정
 ```
 
-## 1. LED 점멸
+## 1. 내장 LD2 점멸
 
-`while (1)` 안에서 반복한다. 0.5초 켜짐 + 0.5초 꺼짐으로 한 주기는 약 1초다.
+보드에서 확인한 초기 예제다. `while (1)` 안에서 반복한다. 0.5초 켜지고 0.5초 꺼지므로 한 주기는 약 1초다.
 
 ```c
 HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
@@ -60,21 +60,21 @@ PC13 입력이 LOW이면 LED를 켜고, HIGH이면 끈다. 반복해서 입력�
 
 **CubeMX Generate Code → CubeIDE Build Project → Run / Debug**
 
-- 자동 생성: 핀·클럭 초기화 코드. `while`문 동작은 직접 작성한다.
+- 자동 생성: 핀·클록 초기화 코드. `while`문 동작은 직접 작성한다.
 - `B1_PIN` 오류: 정확한 이름은 **`B1_Pin`**이다. C는 대소문자를 구분한다.
 - `.elf not found`: 빌드 성공 후 `Debug/test_led.elf`가 생성되는지 확인한다.
 
-현재 핀 이름 오타는 수정했으며, 빌드 성공과 보드 동작은 추가 확인이 필요하다.
+당시 핀 이름 오타를 수정했다. 현재 반복문의 빌드 점검 결과는 [5절](#5-현재-결과와-확인할-항목)에 정리했다.
 
 ---
 
-## 3. LED 8개 동시 제어 · 2026.11.10
+## 3. LED 8개 동시 제어 · 2026-11-10
 
-**목표:** PC0~PC7에 연결한 LED 8개를 동시에 1초 켜고, 1초 끈다.
+PC0~PC7에 연결한 LED 8개를 동시에 1초 켜고 1초 끄는 실습이다.
 
 ### 연결 및 설정
 
-- 준비물: LED 8개, 1kΩ 저항 8개, 브레드보드, 점퍼선
+- 준비물: LED 8개, 1 kΩ 저항 8개, 브레드보드, 점퍼선
 - 각 LED 배선: `GPIO(PC0~PC7) → 저항 → LED(+) → LED(-) → GND`
 - CubeMX: PC0~PC7을 `GPIO_Output`, Push-Pull, No Pull로 설정
 - 핀 라벨: PC0~PC7에 각각 `LED1`~`LED8` 지정
@@ -107,8 +107,7 @@ HAL_Delay(1000);
 - `|`는 핀 마스크를 합쳐 **같은 포트의 여러 핀을 한 번에 제어**한다.
 - 이 배선에서는 `SET`이면 켜지고 `RESET`이면 꺼진다. 딜레이 동안 해당 출력 상태가 유지되며, 전체 점멸 주기는 약 2초다.
 
-
-## 4. GPIO 레지스터 학습 · 2026.11.17
+## 4. GPIO 레지스터 학습 · 2026-11-17
 
 HAL 함수로 LED를 제어하는 것에서 더 나아가, **어느 주소의 어떤 비트를 바꾸면 핀이 동작하는지**를 학습했다.
 
@@ -128,7 +127,7 @@ HAL 함수로 LED를 제어하는 것에서 더 나아가, **어느 주소의 �
 
 ### 클록과 출력 설정
 
-**PD3는 레지스터 해석용 예제다. 현재 프로젝트의 LED는 PC0~PC7을 사용하므로 그대로 적용하지 않는다.** 실제 핀 사용 가능 여부는 MCU 패키지와 보드 핀맵에서 확인한다.
+**PD3는 레지스터 해석용 예제다.** LED 8개 실습은 PC0~PC7을 사용한다. 실제 배선에 사용할 핀은 MCU 패키지와 보드 핀맵에서 확인한다.
 
 | 순서 | 설정 | PD3 학습 예제 |
 | --- | --- | --- |
@@ -217,6 +216,7 @@ RCC AHB1ENR = 0x40023800 + 0x30 = 0x40023830
 | PUPDR | 0x0C | 내부 Pull-up / Pull-down |
 | IDR | 0x10 | 입력 데이터 |
 | ODR | 0x14 | 출력 데이터 |
+| BSRR | 0x18 | 지정 핀의 출력 SET / RESET |
 
 ### 주소를 포인터로 접근하기
 
@@ -262,10 +262,15 @@ HAL 함수 → 설정과 제어를 함수로 수행
 
 ## 5. 현재 결과와 확인할 항목
 
-- LD2 점멸, 버튼 폴링 예제, LED 8개 동시 제어를 기록했다. 현재 반복문에 구현된 동작은 PC0~PC7을 HIGH 1초 / LOW 1초로 제어하는 것이다.
+- 현재 반복문의 목표는 PC0~PC7을 HIGH 1초 / LOW 1초로 제어하는 것이다. `HAL_GPIO_WritePin()` 두 곳에서 `LED5_Pin`~`LED8_Pin`과 핀 마스크 뒤 쉼표가 빠졌다. ARM GCC 구문 검사에서 `too few arguments to function 'HAL_GPIO_WritePin'` 오류가 발생했다. 위 [반복 코드](#반복-코드)에 핀 8개의 마스크와 출력 상태를 넘기는 예를 남겼다.
 - 버튼 예제는 LOW를 눌림으로 해석한다. 실제 눌림 레벨은 회로와 입력값으로 확인한다. 현재 B1 초기화 모드는 `GPIO_MODE_IT_FALLING`이지만 위 예제 자체는 폴링 코드다.
-- 메인 README에는 LED 점멸 정상 동작 기록이 있다. 외부 LED 8개와 버튼의 보드 검증 결과는 구분해서 기록한다.
+- 초기 내장 LD2 점멸은 보드에서 정상 동작을 확인했다. 외부 LED 8개와 버튼의 검증 결과는 각각 확인 후 기록한다.
 - PD3 코드는 레지스터 학습 예제로 구분하며 현재 보드에서 실행한 결과로 기록하지 않는다.
 - 이미지 이름과 상대 경로를 실제 파일에 맞췄다. 외부 그림의 출처와 문서 버전은 확인 후 추가한다.
 
-관련 코드: [main.c](../../examples/gpio-led/Core/Src/main.c) · [핀 정의](../../examples/gpio-led/Core/Inc/main.h) · [CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h) · [HAL GPIO 구현](../../examples/gpio-led/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c)
+## 관련 코드
+
+- GPIO 초기화와 반복 동작. [main.c](../../examples/gpio-led/Core/Src/main.c)
+- 핀 이름과 포트 정의. [main.h](../../examples/gpio-led/Core/Inc/main.h)
+- 레지스터 구조체와 비트 정의. [CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h)
+- `HAL_GPIO_WritePin()`의 BSRR 접근. [HAL GPIO 구현](../../examples/gpio-led/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c)

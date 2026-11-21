@@ -17,14 +17,14 @@ STM32 마이크로컨트롤러의 구조와 동작 원리를 이해하고, 하�
 
 | 구분 | 내용 |
 | --- | --- |
-| Development Board | STM32 NUCLEO-F411RE |
+| 개발 보드 | STM32 NUCLEO-F411RE |
 | MCU | STM32F411RET6 |
 | CPU Core | ARM Cortex-M4 |
 | IDE | STM32CubeIDE |
-| Configuration | STM32CubeMX |
-| Firmware Library | STM32 HAL |
-| Language | C |
-| Debugger | ST-LINK |
+| 설정 도구 | STM32CubeMX |
+| 펌웨어 라이브러리 | STM32F4 HAL / CMSIS |
+| 언어 | C |
+| 디버거 | ST-LINK |
 
 ### 참고 교재
 
@@ -54,12 +54,12 @@ STM32 마이크로컨트롤러의 구조와 동작 원리를 이해하고, 하�
 | GPIO — Push-Pull / Open-Drain | 학습 중 |
 | GPIO — Pull-up / Pull-down / OTYPER | 학습 중 |
 | LED 점멸 실습 | 실습 완료 |
-| Button 실습 | 예정 |
-| UART 통신 | 예정 |
-| Timer / ADC | 예정 |
-| Interrupt / DMA | 예정 |
+| 버튼과 외부 인터럽트 | 입력·EXTI 개념 정리 및 레지스터 실습 코드 작성 |
+| UART 통신 | 프레임·보드레이트 정리 및 인터럽트 에코 코드 작성 |
+| ADC | 변환 원리·ADC1 설정 정리 |
+| Timer / DMA | 실습 예정 |
 
-※ 학습 완료는 개념 학습 기준이며, 하드웨어 실습 완료 여부는 별도로 기록합니다. LED 점멸은 보드에서 정상 동작을 확인했습니다.
+개념 학습과 보드 검증 결과를 실습 기록에 따로 표시합니다. 이전 LD2 점멸은 보드에서 정상 동작을 확인했습니다.
 
 ## 4. 저장소 구조
 
@@ -72,23 +72,27 @@ STM32-Embedded-Study/
 │   ├── gpio/
 │   └── uart/
 ├── examples/              # STM32CubeIDE 실습 프로젝트
-│   └── gpio-led/          # LD2 LED 점멸 실습
+│   ├── gpio-led/          # 내장 LD2 및 외부 LED 실습
+│   ├── F411_EXTI_Practice/ # 스위치와 LED의 레지스터 기반 EXTI 실습
+│   └── USART_TEST/         # USART2 인터럽트 에코 실습
 ├── troubleshooting/       # 오류 분석 및 해결 기록
 └── assets/                # 회로도, 실습 사진 및 이미지
 ```
 
 새 실습 프로젝트와 학습 기록은 진행하면서 순차적으로 추가합니다. 저장소를 내려받은 로컬 폴더 이름은 달라도 됩니다.
 
-- [LED 점멸 실습 및 실행 방법](examples/gpio-led/README.md)
-- [이론 정리 안내](docs/README.md)
+- [LED 실습과 빌드 방법](examples/gpio-led/README.md)
+- [외부 스위치 EXTI 실습](docs/gpio/LED_switch_interrupt.md)
+- [USART2 인터럽트 에코 실습](docs/uart/uart.md#4-usart_test-실습)
+- [주제별 학습 문서](docs/README.md)
 - [오류 기록 안내](troubleshooting/README.md)
 - [이미지 관리 안내](assets/README.md)
 
 ### STM32CubeIDE에서 열기
 
 1. **File → Import → General → Existing Projects into Workspace**를 선택합니다.
-2. 루트 디렉터리로 `examples/gpio-led`를 지정합니다.
-3. 프로젝트 이름 `test_led`를 선택하고, **Copy projects into workspace**는 해제한 채 가져옵니다.
+2. 실습별로 `.project`가 있는 경로를 지정합니다. LED는 `examples/gpio-led`, EXTI는 `examples/F411_EXTI_Practice/STM32CubeIDE`, UART는 `examples/USART_TEST`입니다.
+3. 원하는 실습을 선택하고 **Copy projects into workspace**를 해제한 뒤 가져옵니다.
 4. **Project → Build Project**로 빌드합니다.
 
 기존 위치의 `test_led`가 이미 등록되어 있다면 Project Explorer에서 기존 프로젝트를 제거한 뒤 다시 가져옵니다. 이때 **Delete project contents on disk**는 선택하지 않습니다. 프로젝트 내부 이름은 계속 `test_led`를 사용합니다.
@@ -97,12 +101,12 @@ STM32-Embedded-Study/
 
 각 학습 주제는 다음 내용을 중심으로 정리합니다.
 
-1. **개념:** 용어 정의 및 동작 원리
-2. **하드웨어:** 관련 회로도와 전기적 특성
-3. **레지스터:** MCU 내부 설정과 동작 방식
-4. **HAL:** 주요 HAL 함수 및 코드
-5. **실습:** 구현 결과와 확인 과정
-6. **Troubleshooting:** 발생한 문제와 해결 방법
+1. 용어와 동작 원리를 정리합니다.
+2. 회로도와 전기적 특성을 확인합니다.
+3. 레지스터의 설정과 동작을 읽습니다.
+4. HAL 함수와 실제 레지스터 접근을 연결합니다.
+5. 실습 코드와 빌드·보드 확인 결과를 기록합니다.
+6. 문제가 생기면 원인과 해결 방법을 기록합니다.
 
 단순히 코드를 동작시키는 것에 그치지 않고, **왜 해당 설정과 코드가 필요한지 이해하는 것**을 목표로 합니다.
 
@@ -163,4 +167,4 @@ GPIO 학습에서는 **RCC로 포트 클록 활성화 → GPIO 레지스터 설�
 
 ---
 
-**Goal:** STM32의 내부 동작과 하드웨어 구조를 이해하고, 스스로 임베디드 시스템을 설계·구현·디버깅할 수 있는 역량을 갖추는 것.
+STM32의 내부 동작과 하드웨어 구조를 이해하고, 스스로 임베디드 시스템을 설계·구현·디버깅하는 것을 최종 목표로 합니다.

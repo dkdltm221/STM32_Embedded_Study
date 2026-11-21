@@ -1,19 +1,19 @@
 # STM32 클록과 RCC·PLL 학습 정리
 
-2026.11.18 · NUCLEO-F411RE / 강의의 STM32F767 예제 비교
+2026-11-18 · NUCLEO-F411RE / 강의의 STM32F767 예제 비교
 
 ## 1. 클록이란?
 
 MCU 내부의 CPU와 여러 주변장치는 클록을 기준으로 동작한다. 클록 주파수가 높으면 같은 시간에 더 많은 클록 사이클이 발생한다. 다만 명령어마다 필요한 사이클 수와 메모리 대기 시간이 다르므로, 클록 수와 명령어 처리 수가 항상 같지는 않다.
 
-**현재 보드는 STM32F411RE(Cortex-M4, 최대 100MHz)**다. 작성한 강의 예제는 **STM32F767(Cortex-M7, 최대 216MHz)**를 대상으로 하므로 설정값과 코드를 구분한다.
+**현재 보드는 STM32F411RE(Cortex-M4, 최대 100 MHz)**다. 작성한 강의 예제는 **STM32F767(Cortex-M7, 최대 216 MHz)**를 대상으로 하므로 설정값과 코드를 구분한다.
 
 | 구분 | 현재 프로젝트 | 강의 예제 |
 | --- | --- | --- |
 | MCU | STM32F411RE | STM32F767VGT6 |
 | 코어 | Cortex-M4 | Cortex-M7 |
-| 최대 CPU 클록 | 100MHz | 216MHz |
-| 이 문서의 계산 예 | HSI → PLL → 84MHz | HSE 16MHz 가정 → PLL → 216MHz |
+| 최대 CPU 클록 | 100 MHz | 216 MHz |
+| 이 문서의 계산 예 | HSI → PLL → 84 MHz | HSE 16 MHz 가정 → PLL → 216 MHz |
 | 주의 | F411 설정과 제한 확인 | F7 캐시·Over-drive 코드를 F411에 복사하지 않기 |
 
 ### 분주와 프리스케일러
@@ -21,7 +21,7 @@ MCU 내부의 CPU와 여러 주변장치는 클록을 기준으로 동작한다.
 프리스케일러는 입력 클록을 정해진 비율로 나눈다.
 
 ```text
-입력 100MHz → 프리스케일러 /2 → 출력 50MHz
+입력 100 MHz → 프리스케일러 /2 → 출력 50 MHz
 ```
 
 CPU와 버스, 주변장치는 허용하는 최대 주파수와 필요한 속도가 다르다. 분주로 동작 주파수를 맞추고 소비 전력이나 타이머의 시간 간격을 조정한다. 버스 프리스케일러와 타이머 내부의 PSC는 별도 설정이다.
@@ -30,26 +30,26 @@ CPU와 버스, 주변장치는 허용하는 최대 주파수와 필요한 속도
 
 | 소스 | 의미 | 대표 주파수 / 용도 |
 | --- | --- | --- |
-| HSI | High Speed Internal | 내부 RC 16MHz, SYSCLK 또는 PLL 입력 |
-| HSE | High Speed External | 외부 크리스탈·세라믹 공진자 또는 외부 클록 입력 |
-| LSI | Low Speed Internal | 내부 RC 약 32kHz, IWDG·RTC 등 |
-| LSE | Low Speed External | 외부 32.768kHz 크리스탈, 주로 RTC |
+| HSI | High Speed Internal | 내부 RC 16 MHz, SYSCLK 또는 PLL 입력 |
+| HSE | High Speed External | 외부 크리스털·세라믹 공진자 또는 외부 클록 입력 |
+| LSI | Low Speed Internal | 내부 RC 약 32 kHz, IWDG·RTC 등 |
+| LSE | Low Speed External | 외부 32.768 kHz 크리스털, 주로 RTC |
 
-### HSE: 외부 고속 클록
+### HSE 외부 고속 클록
 
-크리스탈·세라믹 공진자를 OSC_IN/OSC_OUT에 연결하는 방식과, 외부에서 만든 클록을 OSC_IN으로 공급하는 Bypass 방식이 있다. F411의 크리스탈·공진자 입력 범위는 4~26MHz이며 Bypass 입력 조건은 별도로 확인한다.
+크리스털·세라믹 공진자를 `OSC_IN`과 `OSC_OUT`에 연결하는 방식과 외부 클록을 `OSC_IN`으로 공급하는 바이패스(Bypass) 방식이 있다. F411의 크리스털·공진자 입력 범위는 4~26 MHz다. 외부 클록을 직접 공급할 때는 바이패스 입력 조건을 확인한다.
 
-크리스탈 회로의 부하 커패시터는 소자의 사양과 회로 조건에 맞게 선정한다. **HSE가 언제나 16MHz인 것은 아니다.** 아래 F767 계산의 16MHz는 강의 예제의 입력값이다.
+크리스털 회로의 부하 커패시터는 소자 사양과 회로 조건에 맞춰 선정한다. HSE 주파수는 회로에 따라 달라지며, 아래 계산에서 쓰는 16 MHz는 F767 강의 예제의 입력값이다.
 
-![HSE 크리스탈·세라믹 공진자 연결](../../assets/HSE_Crystal_cermic_resonators.png)
+![HSE 크리스털·세라믹 공진자 연결](../../assets/HSE_Crystal_cermic_resonators.png)
 
-### HSI: 내부 고속 클록
+### HSI 내부 고속 클록
 
-외부 소자 없이 내부 RC 오실레이터로 16MHz를 만든다. 외부 부품을 줄일 수 있지만 정밀도는 온도·전압 등의 영향을 받으므로 요구 정확도와 데이터시트 조건을 확인한다.
+외부 소자 없이 내부 RC 오실레이터로 16 MHz를 만든다. 외부 부품을 줄일 수 있지만 정밀도는 온도·전압 등의 영향을 받으므로 요구 정확도와 데이터시트 조건을 확인한다.
 
-리셋 직후에는 HSI가 SYSCLK으로 선택된다. HSE 장애 시 CSS가 활성화된 경우의 복구 동작과 Stop 모드 복귀 시 동작은 매뉴얼에서 확인한다. **HSI가 Stop·Standby 중 계속 동작한다는 의미는 아니다.**
+리셋 직후에는 HSI가 SYSCLK으로 선택된다. CSS를 활성화한 상태에서 발생한 HSE 장애나 Stop 모드에서 복귀하는 경우에는 상황에 맞는 클록 전환 규칙을 매뉴얼에서 확인한다.
 
-### LSE와 LSI: 저속 클록
+### LSE와 LSI 저속 클록
 
 LSE는 정확한 시간 기준이 필요한 RTC에 많이 사용한다. LSI는 내부 저속 RC 클록으로 IWDG나 RTC의 소스로 사용할 수 있다. 저전력 모드에서 어떤 클록이 유지되는지는 소스와 주변장치별로 확인한다.
 
@@ -69,16 +69,16 @@ PLLQ 출력     = VCO 출력 / PLLQ
 
 ### 강의의 F767 계산 예
 
-HSE=16MHz, M=8, N=216, P=2, Q=9를 가정한다.
+HSE=16 MHz, M=8, N=216, P=2, Q=9를 가정한다.
 
 ```text
-VCO 입력 = 16 / 8       = 2MHz
-VCO 출력 = 2 × 216      = 432MHz
-PLLCLK   = 432 / 2      = 216MHz
-PLLQ 출력 = 432 / 9     = 48MHz
+VCO 입력 = 16 / 8       = 2 MHz
+VCO 출력 = 2 × 216      = 432 MHz
+PLLCLK   = 432 / 2      = 216 MHz
+PLLQ 출력 = 432 / 9     = 48 MHz
 ```
 
-이 값이 허용되는지는 해당 MCU의 VCO 범위, 전원 조건, Flash 대기 시간 등을 함께 확인해야 한다. 216MHz 설정은 현재 F411 보드의 설정이 아니다.
+설정 가능 여부는 해당 MCU의 VCO 범위, 전원 조건, Flash 대기 시간 등을 함께 확인한다. GPIO LED 프로젝트의 F411 설정은 [6절](#6-gpio-led-프로젝트의-실제-설정)에 정리했다.
 
 ### PLL 설정 순서
 
@@ -142,9 +142,9 @@ HSI / HSE → PLL 또는 직접 선택 → SYSCLK
 
 TIMPRE=0의 기본 규칙에서는 APB 분주가 /1이면 TIMxCLK=PCLKx이고, /1이 아니면 TIMxCLK=2×PCLKx다.
 
-하지만 **TIMPRE 설정에 따라 다른 규칙이 적용될 수 있다.** 강의 F767 예제는 DCKCFGR1의 TIMPRE를 설정하므로 PCLK=54MHz인데 TIMxCLK=216MHz인 경우를 단순한 두 배 규칙으로 설명하면 안 된다. 타이머 입력 클록과 타이머 내부 PSC 이후의 카운터 클록도 구분한다.
+하지만 **TIMPRE 설정에 따라 다른 규칙이 적용될 수 있다.** 강의 F767 예제는 DCKCFGR1의 TIMPRE를 설정하므로 PCLK=54 MHz인데 TIMxCLK=216 MHz인 경우를 단순한 두 배 규칙으로 설명하면 안 된다. 타이머 입력 클록과 타이머 내부 PSC 이후의 카운터 클록도 구분한다.
 
-## 6. 현재 F411 프로젝트의 실제 설정
+## 6. GPIO LED 프로젝트의 실제 설정
 
 [main.c의 SystemClock_Config()](../../examples/gpio-led/Core/Src/main.c)에 있는 값은 다음과 같다.
 
@@ -163,16 +163,16 @@ RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
 | 항목 | 계산 | 소스 설정으로 계산한 값 |
 | --- | --- | --- |
-| PLL 입력 | HSI | 16MHz |
-| VCO 입력 | 16 / 16 | 1MHz |
-| VCO 출력 | 1 × 336 | 336MHz |
-| SYSCLK | 336 / 4 | 84MHz |
-| HCLK | 84 / 1 | 84MHz |
-| PCLK1 | 84 / 2 | 42MHz |
-| PCLK2 | 84 / 1 | 84MHz |
-| PLLQ 출력 | 336 / 4 | 84MHz |
+| PLL 입력 | HSI | 16 MHz |
+| VCO 입력 | 16 / 16 | 1 MHz |
+| VCO 출력 | 1 × 336 | 336 MHz |
+| SYSCLK | 336 / 4 | 84 MHz |
+| HCLK | 84 / 1 | 84 MHz |
+| PCLK1 | 84 / 2 | 42 MHz |
+| PCLK2 | 84 / 1 | 84 MHz |
+| PLLQ 출력 | 336 / 4 | 84 MHz |
 
-PLLQ 출력은 이 설정에서 48MHz가 아니다. 48MHz를 요구하는 USB 등 기능을 추가할 때는 클록 구성을 다시 검토한다. 위 표는 소스 기반 계산이며 실제 보드에서 클록을 계측한 결과는 아니다.
+이 설정의 PLLQ 출력은 84 MHz다. USB 등 48 MHz가 필요한 기능을 추가할 때는 클록 구성을 확인한다. 위 값은 소스에서 계산했으며, 실제 보드의 클록 계측 결과는 측정 후 기록한다. USART_TEST의 클록과 보드레이트 계산은 [UART 문서](../uart/uart.md#3-usart2-클록과-brr)에서 볼 수 있다.
 
 ## 7. 강의 F767 초기화 코드에서 배운 점
 
@@ -184,7 +184,7 @@ PLLQ 출력은 이 설정에서 48MHz가 아니다. 48MHz를 요구하는 USB �
 | Flash 설정 | ART·프리페치·Wait state | 전압과 주파수에 맞는 설정 필요 |
 | HSI/HSE·PLL | 소스 준비 후 PLL 설정 및 안정화 대기 | PLL 비활성화 후 PLLRDY=0도 확인 |
 | Over-drive | F767의 고속 동작 전원 조건 준비 | 무조건 모든 MCU에 필요한 설정이 아님 |
-| 버스 분주 | 강의 예: HCLK=216, PCLK1=PCLK2=54MHz | 설정한 값과 MCU의 최대 허용값을 구분 |
+| 버스 분주 | 강의 예: HCLK=216, PCLK1=PCLK2=54 MHz | 설정한 값과 MCU의 최대 허용값을 구분 |
 | TIMPRE·CSS | 타이머 클록 규칙 변경, HSE 장애 감시 | MCU별 레지스터와 동작 확인 |
 
 강의 메모의 대표 값은 `PLLCFGR=0x09436008`, `CFGR=0x3040B402`, `DCKCFGR1=0x01000000`이었다. 이 값들은 **F767 강의 예제 추적용**으로 남긴 것이며 현재 프로젝트의 실행 설정이나 검증된 범용 초기화 코드가 아니다. 특히 PLLCFGR의 나머지 필드와 예약 비트까지 해당 MCU 매뉴얼로 해석해야 한다.
@@ -199,9 +199,9 @@ PLLQ 출력은 이 설정에서 48MHz가 아니다. 48MHz를 요구하는 USB �
 
 ## 참고 자료
 
-- [RM0383 — STM32F411 레퍼런스 매뉴얼](https://www.st.com/resource/en/reference_manual/dm00119316.pdf): RCC, 클록 트리, PLLCFGR, TIMPRE
-- [DS10314 — STM32F411 데이터시트](https://www.st.com/resource/en/datasheet/stm32f411re.pdf): 최대 주파수와 전기적 조건
-- [DS11532 — STM32F767 계열 데이터시트](https://www.st.com/resource/en/datasheet/stm32f767ii.pdf): 강의 MCU의 코어·캐시와 동작 조건
-- [프로젝트 CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h): F411 레지스터·비트 정의
+- RCC, 클록 트리, PLLCFGR, TIMPRE. [RM0383 — STM32F411 레퍼런스 매뉴얼](https://www.st.com/resource/en/reference_manual/dm00119316.pdf)
+- 최대 주파수와 전기적 조건. [DS10314 — STM32F411 데이터시트](https://www.st.com/resource/en/datasheet/stm32f411re.pdf)
+- 강의 MCU의 코어·캐시와 동작 조건. [DS11532 — STM32F767 계열 데이터시트](https://www.st.com/resource/en/datasheet/stm32f767ii.pdf)
+- F411 레지스터와 비트 정의. [프로젝트 CMSIS 헤더](../../examples/gpio-led/Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f411xe.h)
 
 그림은 기존에 추가한 학습 자료를 연결했다. 그림의 출처와 대상 MCU·문서 버전은 확인 후 기록한다.

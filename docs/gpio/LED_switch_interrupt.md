@@ -1,31 +1,22 @@
-![스위치 인터럽트 실습 사진](../../assets/switch_01.jpg)
+# STM32 레지스터 기반 EXTI LED 제어 실습
 
+2026-11-19 · NUCLEO-F411RE · STM32CubeIDE / C / CMSIS
 
-# STM32 레지스터 기반 EXTI 인터럽트 LED 제어
+## 1. 실습 목표
 
-**학습일:** 2026.11.19  
-**개발 보드:** NUCLEO-F411RE (STM32F411RET6)  
-**개발 환경:** STM32CubeIDE / C / CMSIS  
-**진행 상태:** 코드 작성 완료, 빌드 및 실제 보드 동작 검증 예정
-switch_01
-## 1. 프로젝트 목적
-
-기존에는 HAL 함수를 통해 GPIO를 제어했지만, 이번에는 레퍼런스 매뉴얼 RM0383을 참고하여 GPIO 및 EXTI 레지스터를 직접 설정했다.
-
-단순히 버튼을 누르면 LED가 켜지는 기능을 구현하는 것이 아니라, 외부 입력이 인터럽트로 변환되어 CPU에 전달되고 ISR이 실행되는 전체 과정을 이해하는 것이 목표였다.
+RM0383을 참고해 GPIO와 EXTI 레지스터를 직접 설정한다. 스위치 입력이 SYSCFG와 EXTI를 거쳐 NVIC에 전달된 뒤 ISR이 LED를 켜거나 끄는 과정을 확인한다. 각 블록의 역할은 [EXTI와 NVIC 개념 정리](Interrupt.md)에서 설명한다.
 
 ## 2. 프로젝트 구성
 
 | 구성 요소 | 핀 | 역할 |
-|---|---|---|
+| --- | --- | --- |
 | 스위치 1 | PB0 | EXTI0 → LED 전체 ON |
 | 스위치 2 | PB1 | EXTI1 → LED 전체 OFF |
 | LED 4개 | PC0~PC3 | GPIO 출력 |
 
-- 스위치는 GND에 연결하고 내부 Pull-up 사용
-- 평소 HIGH, 누르면 LOW
-- HIGH → LOW 변화를 감지하는 Falling Edge 방식
-- LED는 각 GPIO 출력에 1kΩ 저항을 직렬 연결하고 GND로 연결
+스위치는 GND와 연결하고 내부 풀업을 사용한다. 평소 HIGH에서 스위치를 누르면 LOW로 바뀌며, EXTI는 이 하강 에지를 감지한다. LED는 각 GPIO 출력에 1 kΩ 저항을 직렬로 연결한 뒤 GND로 연결했다.
+
+![외부 스위치와 LED를 연결한 실습 사진](../../assets/switch_01.jpg)
 
 ## 3. GPIO 초기화
 
@@ -72,12 +63,12 @@ SYSCFG->EXTICR[0] =
 
 **학습 중 헷갈렸던 부분**
 
-`EXTICR[1]`은 EXTI1을 의미하는 것이 아니라 두 번째 EXTICR 레지스터를 의미한다. 따라서 EXTI1 설정도 `EXTICR[0]`에서 수행해야 한다.
+배열의 `EXTICR[1]`은 두 번째 EXTICR 레지스터로 EXTI4~EXTI7을 담당한다. EXTI1은 첫 번째 레지스터인 `EXTICR[0]`의 두 번째 필드에 설정한다.
 
 ## 5. EXTI 주요 레지스터
 
 | 레지스터 | 역할 |
-|---|---|
+| --- | --- |
 | `FTSR` | Falling Trigger Selection Register — HIGH → LOW 감지 |
 | `RTSR` | Rising Trigger Selection Register — LOW → HIGH 감지 |
 | `IMR` | Interrupt Mask Register — 인터럽트 요청 허용·차단 |
@@ -92,11 +83,9 @@ EXTI->RTSR &= ~((1UL << 0) | (1UL << 1));
 EXTI->FTSR |= (1UL << 0) | (1UL << 1);
 
 EXTI->PR = (1UL << 0) | (1UL << 1);
-
-EXTI->IMR |= (1UL << 0) | (1UL << 1);
 ```
 
-초기화 중에는 IMR로 인터럽트 요청을 차단하고, 상승 에지를 비활성화한 다음 하강 에지를 활성화한다. 기존 Pending 플래그를 해제하고 요청을 허용한다.
+초기화 중에는 IMR로 요청을 차단한다. 하강 에지를 설정한 뒤 기존 Pending 플래그를 해제하고, NVIC의 우선순위를 설정한 다음 요청을 다시 허용한다.
 
 **주의할 점**
 
@@ -111,6 +100,7 @@ EXTI->IMR |= (1UL << 0) | (1UL << 1);
 NVIC_SetPriority(EXTI0_IRQn, 5U);
 NVIC_SetPriority(EXTI1_IRQn, 6U);
 
+EXTI->IMR |= (1UL << 0) | (1UL << 1);
 NVIC_EnableIRQ(EXTI0_IRQn);
 NVIC_EnableIRQ(EXTI1_IRQn);
 ```
@@ -120,7 +110,7 @@ NVIC는 인터럽트 채널을 활성화하고 우선순위를 관리한다.
 - EXTI0 우선순위: 5
 - EXTI1 우선순위: 6
 - 우선순위 숫자가 작을수록 높은 우선순위
-- `NVIC_SetPriority()`와 `NVIC_EnableIRQ()`는 HAL이 아닌 CMSIS 함수
+- `NVIC_SetPriority()`와 `NVIC_EnableIRQ()`는 CMSIS가 제공하는 함수
 
 ## 7. ISR과 BSRR 출력 제어
 
@@ -158,5 +148,13 @@ BSRR를 사용하면 ODR를 읽고 수정한 뒤 다시 쓰는 과정 없이 지
 4. ISR은 인터럽트 발생 이후 실제 작업을 수행하는 함수다.
 5. HAL 없이도 레지스터와 CMSIS를 이용해 인터럽트 처리 경로를 구성할 수 있다.
 
-기존에는 HAL 함수가 인터럽트를 간단하게 처리한다고 생각했지만, 실제로는 여러 레지스터의 설정과 하드웨어 동작이 연결된다는 것을 이해했다.
+HAL 콜백을 이용할 때도 같은 하드웨어 경로를 거친다. 이 실습에서는 어떤 레지스터가 핀 라우팅과 에지 감지, 요청 허용, 출력 변경을 담당하는지 코드에서 직접 확인했다.
 
+## 9. 빌드와 보드 확인
+
+프로젝트의 `.project`는 `examples/F411_EXTI_Practice/STM32CubeIDE/`에 있다. `F411_EXTI_Practice`를 가져온 뒤 빌드한다. GPIO와 EXTI 설정, 두 ISR은 `Core/Src/main.c`에 직접 구현되어 있으므로 동작을 확인할 때 해당 소스를 기준으로 본다.
+
+빌드와 보드 동작은 확인 후 기록한다. 보드에서는 리셋 직후 LED가 꺼져 있는지, PB0을 누르면 모두 켜지는지, PB1을 누르면 모두 꺼지는지 확인한다.
+
+- 레지스터 초기화와 두 IRQ 핸들러. [F411_EXTI_Practice의 main.c](../../examples/F411_EXTI_Practice/Core/Src/main.c)
+- GPIO·SYSCFG·EXTI 레지스터. [RM0383 — STM32F411 레퍼런스 매뉴얼](https://www.st.com/resource/en/reference_manual/dm00119316.pdf)
