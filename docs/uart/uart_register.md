@@ -151,7 +151,7 @@ USART2->CR1 |= (1UL << 15);
 - OVER8 = 0 → 16배 오버샘플링
 - OVER8 = 1 → 8배 오버샘플링
 
-![UART 오버샘플링](../../assets/UART_OVERSAMPLING.PNG)
+![UART 오버샘플링](../../assets/UART_OVERSAMPLING.png)
 
 ### 최대 통신 속도
 
@@ -222,7 +222,7 @@ BRR = 0x00000036;
 - 소수부 = 6 / 8 = 0.75
 - USARTDIV = 3.75
 
-![BRR 레지스터 구조](../../assets/BRR.PNG)
+![BRR 레지스터 구조](../../assets/BRR.png)
 
 ### Baud Rate 계산
 
@@ -279,7 +279,7 @@ STM32F411의 Baud Rate 계산식은 다음과 같다.
 
 특정 데이터 패턴이나 조건을 감지하여 MCU가 저전력 상태에서 깨어날 수 있도록 지원하는 하드웨어 기능이다.
 
-![USART 내부 블록 다이어그램](../../assets/USART_BLOCK_DIAGRAM.PNG)
+![USART 내부 블록 다이어그램](../../assets/USART_BLOCK_DIAGRAM.png)
 
 ---
 
