@@ -48,12 +48,10 @@ int main(void)
 
     // 4. PB0 → EXTI0, PB1 → EXTI1
     SYSCFG->EXTICR[0] =
-        (SYSCFG->EXTICR[0] & ~(0xFUL << 0))
-        | (0x1UL << 0);
+        (SYSCFG->EXTICR[0] & ~(0xFUL << 0)) | (0x1UL << 0);
 
     SYSCFG->EXTICR[0] =
-        (SYSCFG->EXTICR[0] & ~(0xFUL << 4))
-        | (0x1UL << 4);
+        (SYSCFG->EXTICR[0] & ~(0xFUL << 4)) | (0x1UL << 4);
 
     // 5. EXTI 초기화
     EXTI->IMR &= ~((1UL << 0) | (1UL << 1));
@@ -77,6 +75,5 @@ int main(void)
     // 7. 인터럽트 대기
     while (1)
     {
-
     }
 }
