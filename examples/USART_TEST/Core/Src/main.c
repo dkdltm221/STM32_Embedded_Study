@@ -74,3 +74,30 @@ static void MX_USART2_UART_Init(void)
     Error_Handler();
   }
 }
+uint32_t uart_printf (const char * format, ...) {
+    if(uart_address == 0) {
+        return 0;
+    }
+
+    va_list ap;
+    uint8_t string[256];
+    uint32_t ch_count = 0;
+
+    // 가변인자 사용 공부하기!!!
+    // 아래는 stdarg와 stdio 의 함수들임
+    va_start(ap, format);
+    vsprintf(string, format, ap);
+    va_end(ap);
+
+    // 받은 메시지를 한 글자씩 출력하기
+    uint8_t* string_ptr = string;
+
+    while(*string_ptr) {
+        if('.' && (USART2->SR >> 7) & 0x1) {
+            uart_address->DR = *string_ptr++;
+            ch_count++;
+        }
+    }
+
+    return ch_count;
+}
