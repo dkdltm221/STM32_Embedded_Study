@@ -1,15 +1,47 @@
 #include "stm32f4xx.h"
 #include <stddef.h>
 
-static const char messageHIG[] = "HIGHT\n";
-static const char messageLow[] = "LOW\n";
+static const char messageHIG[] = "HIGH\n\r";
+static const char messageLow[] = "LOW\n\r";
 static const char *volatile rx;
+#define DEBOUNCE_MS 500U
+
+volatile uint32_t exti0_count = 0;
+volatile uint32_t exti0_valid_count = 0;
+volatile uint32_t exti1_count = 0;
+static uint32_t last_exti0 = 0;
+static uint8_t exti0_initialized = 0;
+volatile uint32_t tick_ms = 0;
+
+void SysTick_Init(void)
+{
+  SysTick->CTRL = 0;
+
+  SysTick->LOAD = 16000 - 1;
+  SysTick->VAL = 0;
+
+  SysTick->CTRL = 0x7UL;
+}
+
+
 // 본 프로젝트는 내가 아는 범위에서 레지스터 제어를 해보고자한다.
 void EXTI0_IRQHandler(void)
 {
   if (EXTI->PR & (1UL << 0))
   {
     EXTI->PR = (1UL << 0);
+    exti0_count++;
+    uint32_t now = tick_ms;
+
+    if (exti0_initialized &&
+        (now - last_exti0) < DEBOUNCE_MS)
+    {
+      return;
+    }
+
+    exti0_initialized = 1;
+    last_exti0 = now;
+    exti0_valid_count++;
     GPIOC->BSRR = 0x1UL;
     rx = messageHIG;
   }
@@ -19,11 +51,14 @@ void EXTI1_IRQHandler(void)
   if (EXTI->PR & (1UL << 1))
   {
     EXTI->PR = (1UL << 1);
+
+    exti1_count++;
+
     GPIOC->BSRR = (0x1UL << 16);
     rx = messageLow;
   }
 }
-void USART2_TX_Init(void)
+void USART2_Init(void)
 {
   // 1. RCC 클록 활성화
   RCC->AHB1ENR |= (1UL << 0);  // GPIOA
@@ -50,17 +85,13 @@ void USART2_TX_Init(void)
   USART2->CR1 |= (3UL << 2);  // TE, RE 활성화
   USART2->CR1 |= (1UL << 13); // USART 활성화
 }
-
-int main(void)
+void GPIO_EXTI_Init(void)
 {
-  // PC0을  led on/off
   // 1. PC0의 클록 활성화
   RCC->AHB1ENR |= (1UL << 1) | (1UL << 2);
-  // 3. 시스템 클록  활성화
-  RCC->APB2ENR |= (1UL << 14);
-  (void)RCC->APB2ENR;
+
   (void)RCC->AHB1ENR;
-  USART2_TX_Init();
+
   // 4. PB0: 입력 + Pull-up
   GPIOB->MODER &= ~0xFUL;
   GPIOB->PUPDR = (GPIOB->PUPDR & ~0xFUL) | 0x5UL;
@@ -83,7 +114,19 @@ int main(void)
   EXTI->IMR &= ~((1UL << 0) | (1UL << 1));
   EXTI->RTSR &= ~((1UL << 0) | (1UL << 1));
   EXTI->FTSR |= (1UL << 0) | (1UL << 1);
+}
 
+int main(void)
+{
+
+  //  시스템 클록  활성화
+  RCC->APB2ENR |= (1UL << 14);
+  (void)RCC->APB2ENR;
+
+  //  PC0의 클록 활성화
+  GPIO_EXTI_Init();
+  USART2_Init();
+  SysTick_Init();
   // 펜딩 해제
   EXTI->PR = (1UL << 0) | (1UL << 1);
   // 우선순위 설정
@@ -104,11 +147,8 @@ int main(void)
       continue;
     }
 
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
     const char *message_ptr = rx;
     rx = NULL;
-    __set_PRIMASK(primask);
 
     while (*message_ptr != '\0')
     {
