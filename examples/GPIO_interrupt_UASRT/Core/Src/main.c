@@ -9,8 +9,11 @@ static const char *volatile rx;
 volatile uint32_t exti0_count = 0;
 volatile uint32_t exti0_valid_count = 0;
 volatile uint32_t exti1_count = 0;
+volatile uint32_t exti1_valid_count = 0;
 static uint32_t last_exti0 = 0;
+static uint32_t last_exti1 = 0;
 static uint8_t exti0_initialized = 0;
+static uint8_t exti1_initialized = 0;
 volatile uint32_t tick_ms = 0;
 
 void SysTick_Init(void)
@@ -22,7 +25,6 @@ void SysTick_Init(void)
 
   SysTick->CTRL = 0x7UL;
 }
-
 
 // 본 프로젝트는 내가 아는 범위에서 레지스터 제어를 해보고자한다.
 void EXTI0_IRQHandler(void)
@@ -54,6 +56,14 @@ void EXTI1_IRQHandler(void)
 
     exti1_count++;
 
+    uint32_t now = tick_ms;
+    if (exti1_initialized && (now - last_exti1) < DEBOUNCE_MS)
+    {
+      return;
+    }
+    exti1_initialized = 1;
+    last_exti1 = now;
+    exti1_valid_count++;
     GPIOC->BSRR = (0x1UL << 16);
     rx = messageLow;
   }
